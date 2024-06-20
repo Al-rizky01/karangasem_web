@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firestore and Storage</title>
+  <style>
+    
+    #status {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      margin-top: 10vw;
+      border-radius: 5px;
+    }
+    #status.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    #status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .form-in{
+     position: relative;
+     display: block;
+     height: 50vh;
+     width: 20vh;
+     
+    }
+    .form-in p{
+      margin-top: 20px;
+     
+    }
+    .form-in input{
+margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>TAMBAHKAN SECTION</h1>
+  <div class="form-in">
+
+    <form id="addSectionForm">
+      <p>Title:</p>
+      <input type="text" id="title" placeholder="Title" required>
+      <p>description:</p>
+      <input type="text" id="description" placeholder="Description" required>
+      <p>Masukan Image:</p>
+      <input type="file" id="imageFile" accept="image/*" required>
+      <p>Harga: (yang warna kuning)</p>
+      <input type="number" id="subtitle" placeholder="Harga" required>
+      <p>List Item:</p>
+      <input class="listItem" placeholder="List items" required>
+      <input class="listItem" placeholder="List items">
+      <input class="listItem" placeholder="List items">
+      <input class="listItem" placeholder="List items">
+      <input class="listItem" placeholder="List items">
+      <button type="submit">Add Section</button>
+    </form>
+  </div>
+
+  <div id="status"></div>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-x_2U6ooA_Em-856toYix-kO9tAUadtg",
+      authDomain: "karangasem-db.firebaseapp.com",
+      projectId: "karangasem-db",
+      storageBucket: "karangasem-db.appspot.com",
+      messagingSenderId: "549915891273",
+      appId: "1:549915891273:web:7fe31767ef4268aa06d198",
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const addSectionForm = document.getElementById("addSectionForm");
+      const statusDiv = document.getElementById("status");
+
+      addSectionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setStatus("Uploading data...", "info");
+
+        const title = document.getElementById("title").value;
+        const description = document.getElementById("description").value;
+        const subtitle = document.getElementById("subtitle").value;
+        const listItems = Array.from(document.getElementsByClassName("listItem"))
+                               .map(input => input.value)
+                               .filter(value => value.trim() !== ""); // Filter out empty values
+        const imageFile = document.getElementById("imageFile").files[0];
+
+        try {
+          const imageUrl = await uploadImage(imageFile);
+          await addData(title, description, imageUrl, subtitle, listItems);
+          setStatus("Data successfully added!", "success");
+        } catch (e) {
+          console.error("Error adding document: ", e);
+          setStatus("Failed to add data. Error: " + e.message, "error");
+        }
+      });
+
+      // Function to upload image to Firebase Storage and return the download URL
+      async function uploadImage(file) {
+        const storageRef = ref(storage, 'images/' + file.name);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+      }
+
+      // Function to add data to Firestore
+      async function addData(title, description, imageUrl, subtitle, listItems) {
+        const docRef = await addDoc(collection(db, "sections"), {
+          title: title,
+          description: description,
+          imageUrl: imageUrl,
+          subtitle: subtitle,
+          listItems: listItems
+        });
+        console.log("Document written with ID: ", docRef.id);
+      }
+
+      // Function to set status message
+      function setStatus(message, type) {
+        statusDiv.textContent = message;
+        statusDiv.className = "";
+        statusDiv.classList.add(type);
+        statusDiv.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>
